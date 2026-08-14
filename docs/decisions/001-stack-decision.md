@@ -288,7 +288,6 @@ Render will be used for the initial production deployment.
 
 * AWS
 * DigitalOcean
-* Railway
 * Vercel
 * Traditional cPanel/shared hosting
 
@@ -318,13 +317,6 @@ It is rejected because using it would require the team to take on more server an
 
 **Trade-off accepted:** The project gives up some infrastructure control in exchange for simpler managed deployment.
 
-### Rejected alternative: Railway
-
-Railway offers convenient application deployment and managed services.
-
-It is rejected for Sprint 01 because the project prioritizes a predictable deployment workflow with the selected Laravel, React, and PostgreSQL stack, while Railway would introduce another hosting platform to evaluate and maintain without providing a capability that is required by the first production vertical slice.
-
-**Trade-off accepted:** The project gives up Railway's alternative deployment and developer-experience options in exchange for keeping the initial hosting decision focused on the minimum operational requirements needed for Sprint 01.
 
 ### Rejected alternative: Vercel
 
