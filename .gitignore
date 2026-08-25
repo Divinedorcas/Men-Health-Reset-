@@ -1,0 +1,25 @@
+# Laravel
+/backend/vendor/
+/backend/.env
+
+# React
+/frontend/node_modules/
+/frontend/dist/
+
+# Old backups
+/backend-old/vendor/
+/backend-old/.env
+/frontend-old/node_modules/
+/frontend-old/dist/
+
+# Environment
+.env
+.env.*
+
+# IDE
+.vscode/
+.idea/
+
+# OS
+.DS_Store
+Thumbs.db
