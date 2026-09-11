@@ -14,7 +14,7 @@
 
 # Environment
 .env
-.env.*
+
 
 # IDE
 .vscode/
