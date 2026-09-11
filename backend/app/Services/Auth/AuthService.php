@@ -4,6 +4,7 @@ namespace App\Services\Auth;
 
 use App\Models\User;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Validation\ValidationException;
@@ -91,6 +92,11 @@ class AuthService
     {
         // Revoke only the token that was used for this request.
         $request->user()->currentAccessToken()->delete();
+
+        // Clear cached guard instances and the authenticated user so subsequent
+        // requests in the same process (e.g. tests) must re-authenticate.
+        Auth::guard('sanctum')->forgetUser();
+        Auth::forgetGuards();
     }
 
     /**
