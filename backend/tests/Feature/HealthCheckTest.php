@@ -22,10 +22,10 @@ class HealthCheckTest extends TestCase
         $response = $this->getJson('/api/health');
 
         $response->assertStatus(200)
-                 ->assertJson([
-                     'status'  => 'ok',
-                     'service' => 'men-health-reset-api',
-                 ]);
+            ->assertJson([
+                'status' => 'ok',
+                'service' => 'men-health-reset-api',
+            ]);
     }
 
     public function test_health_response_contains_required_keys(): void
@@ -33,6 +33,6 @@ class HealthCheckTest extends TestCase
         $response = $this->getJson('/api/health');
 
         $response->assertStatus(200)
-                 ->assertJsonStructure(['status', 'service']);
+            ->assertJsonStructure(['status', 'service']);
     }
 }

@@ -25,7 +25,7 @@ use Illuminate\Support\Facades\Route;
  */
 Route::get('/health', function () {
     return response()->json([
-        'status'  => 'ok',
+        'status' => 'ok',
         'service' => 'men-health-reset-api',
     ]);
 });
@@ -47,11 +47,11 @@ Route::get('/health', function () {
 Route::prefix('auth')->group(function () {
     // Public
     Route::post('/register', [AuthController::class, 'register']);
-    Route::post('/login',    [AuthController::class, 'login']);
+    Route::post('/login', [AuthController::class, 'login']);
 
     // Protected — requires a valid Sanctum bearer token
     Route::middleware('auth:sanctum')->group(function () {
         Route::post('/logout', [AuthController::class, 'logout']);
-        Route::get('/me',      [AuthController::class, 'me']);
+        Route::get('/me', [AuthController::class, 'me']);
     });
 });

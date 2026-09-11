@@ -25,16 +25,16 @@ class AuthTest extends TestCase
     public function test_new_user_can_register_and_receives_token(): void
     {
         $response = $this->postJson('/api/auth/register', [
-            'email'    => 'john@example.com',
+            'email' => 'john@example.com',
             'password' => 'SecurePass1!',
         ]);
 
         $response->assertStatus(201)
-                 ->assertJsonStructure([
-                     'user'  => ['id', 'email'],
-                     'token',
-                 ])
-                 ->assertJsonPath('user.email', 'john@example.com');
+            ->assertJsonStructure([
+                'user' => ['id', 'email'],
+                'token',
+            ])
+            ->assertJsonPath('user.email', 'john@example.com');
 
         $this->assertDatabaseHas('users', ['email' => 'john@example.com']);
     }
@@ -46,20 +46,20 @@ class AuthTest extends TestCase
     public function test_existing_user_can_sign_in(): void
     {
         User::factory()->create([
-            'email'    => 'john@example.com',
+            'email' => 'john@example.com',
             'password' => Hash::make('SecurePass1!'),
         ]);
 
         $response = $this->postJson('/api/auth/login', [
-            'email'    => 'john@example.com',
+            'email' => 'john@example.com',
             'password' => 'SecurePass1!',
         ]);
 
         $response->assertStatus(200)
-                 ->assertJsonStructure([
-                     'user'  => ['id', 'email'],
-                     'token',
-                 ]);
+            ->assertJsonStructure([
+                'user' => ['id', 'email'],
+                'token',
+            ]);
     }
 
     // ─────────────────────────────────────────────────────────────
@@ -68,18 +68,18 @@ class AuthTest extends TestCase
 
     public function test_user_can_sign_out_and_token_is_revoked(): void
     {
-        $user  = User::factory()->create();
+        $user = User::factory()->create();
         $token = $user->createToken('auth_token')->plainTextToken;
 
         $this->withToken($token)
-             ->postJson('/api/auth/logout')
-             ->assertStatus(200)
-             ->assertJsonPath('message', 'Signed out successfully.');
+            ->postJson('/api/auth/logout')
+            ->assertStatus(200)
+            ->assertJsonPath('message', 'Signed out successfully.');
 
         // Token is now invalid — protected route must reject it.
         $this->withToken($token)
-             ->getJson('/api/auth/me')
-             ->assertStatus(401);
+            ->getJson('/api/auth/me')
+            ->assertStatus(401);
     }
 
     // ─────────────────────────────────────────────────────────────
@@ -101,13 +101,13 @@ class AuthTest extends TestCase
         User::factory()->create(['email' => 'john@example.com']);
 
         $response = $this->postJson('/api/auth/register', [
-            'email'    => 'john@example.com',
+            'email' => 'john@example.com',
             'password' => 'SecurePass1!',
         ]);
 
         $response->assertStatus(422)
-                 ->assertJsonValidationErrors(['email'])
-                 ->assertJsonPath('errors.email.0', 'This email is already registered.');
+            ->assertJsonValidationErrors(['email'])
+            ->assertJsonPath('errors.email.0', 'This email is already registered.');
     }
 
     // ─────────────────────────────────────────────────────────────
@@ -118,28 +118,28 @@ class AuthTest extends TestCase
     public function test_wrong_password_returns_uniform_error(): void
     {
         User::factory()->create([
-            'email'    => 'john@example.com',
+            'email' => 'john@example.com',
             'password' => Hash::make('CorrectPassword1!'),
         ]);
 
         $response = $this->postJson('/api/auth/login', [
-            'email'    => 'john@example.com',
+            'email' => 'john@example.com',
             'password' => 'WrongPassword!',
         ]);
 
         $response->assertStatus(422)
-                 ->assertJsonPath('errors.email.0', 'Email or password is incorrect');
+            ->assertJsonPath('errors.email.0', 'Email or password is incorrect');
     }
 
     public function test_nonexistent_email_returns_same_uniform_error(): void
     {
         $response = $this->postJson('/api/auth/login', [
-            'email'    => 'nobody@example.com',
+            'email' => 'nobody@example.com',
             'password' => 'SomePassword1!',
         ]);
 
         $response->assertStatus(422)
-                 ->assertJsonPath('errors.email.0', 'Email or password is incorrect');
+            ->assertJsonPath('errors.email.0', 'Email or password is incorrect');
     }
 
     // ─────────────────────────────────────────────────────────────
@@ -149,7 +149,7 @@ class AuthTest extends TestCase
     public function test_signup_with_empty_email_shows_inline_error(): void
     {
         $this->postJson('/api/auth/register', [
-            'email'    => '',
+            'email' => '',
             'password' => 'SecurePass1!',
         ])->assertStatus(422)->assertJsonValidationErrors(['email']);
     }
@@ -157,7 +157,7 @@ class AuthTest extends TestCase
     public function test_signup_with_empty_password_shows_inline_error(): void
     {
         $this->postJson('/api/auth/register', [
-            'email'    => 'john@example.com',
+            'email' => 'john@example.com',
             'password' => '',
         ])->assertStatus(422)->assertJsonValidationErrors(['password']);
     }
@@ -165,7 +165,7 @@ class AuthTest extends TestCase
     public function test_login_with_empty_fields_shows_inline_errors(): void
     {
         $this->postJson('/api/auth/login', [
-            'email'    => '',
+            'email' => '',
             'password' => '',
         ])->assertStatus(422)->assertJsonValidationErrors(['email', 'password']);
     }
@@ -177,18 +177,18 @@ class AuthTest extends TestCase
     public function test_short_password_returns_exact_required_message(): void
     {
         $response = $this->postJson('/api/auth/register', [
-            'email'    => 'john@example.com',
+            'email' => 'john@example.com',
             'password' => 'short',          // 5 chars — under minimum
         ]);
 
         $response->assertStatus(422)
-                 ->assertJsonPath('errors.password.0', 'Password must be at least 8 characters');
+            ->assertJsonPath('errors.password.0', 'Password must be at least 8 characters');
     }
 
     public function test_password_of_64_characters_is_accepted(): void
     {
         $response = $this->postJson('/api/auth/register', [
-            'email'    => 'john@example.com',
+            'email' => 'john@example.com',
             'password' => str_repeat('A1!b', 16), // 64 chars
         ]);
 
@@ -205,26 +205,26 @@ class AuthTest extends TestCase
         RateLimiter::clear('login:ratelimit@example.com|127.0.0.1');
 
         User::factory()->create([
-            'email'    => 'ratelimit@example.com',
+            'email' => 'ratelimit@example.com',
             'password' => Hash::make('CorrectPassword1!'),
         ]);
 
         // Exhaust 5 allowed attempts.
         for ($i = 0; $i < 5; $i++) {
             $this->postJson('/api/auth/login', [
-                'email'    => 'ratelimit@example.com',
+                'email' => 'ratelimit@example.com',
                 'password' => 'WrongPassword!',
             ]);
         }
 
         // The 6th attempt must be blocked.
         $response = $this->postJson('/api/auth/login', [
-            'email'    => 'ratelimit@example.com',
+            'email' => 'ratelimit@example.com',
             'password' => 'WrongPassword!',
         ]);
 
         $response->assertStatus(429)
-                 ->assertJsonPath('message', 'Too many attempts. Please try again in a few minutes.');
+            ->assertJsonPath('message', 'Too many attempts. Please try again in a few minutes.');
     }
 
     // ─────────────────────────────────────────────────────────────
@@ -234,12 +234,12 @@ class AuthTest extends TestCase
     public function test_password_is_never_returned_in_registration_response(): void
     {
         $response = $this->postJson('/api/auth/register', [
-            'email'    => 'john@example.com',
+            'email' => 'john@example.com',
             'password' => 'SecurePass1!',
         ]);
 
         $response->assertStatus(201)
-                 ->assertJsonMissingPath('user.password');
+            ->assertJsonMissingPath('user.password');
 
         $this->assertStringNotContainsString('SecurePass1!', $response->getContent());
         $this->assertStringNotContainsString('password', $response->getContent());
@@ -248,17 +248,17 @@ class AuthTest extends TestCase
     public function test_password_is_never_returned_in_login_response(): void
     {
         User::factory()->create([
-            'email'    => 'john@example.com',
+            'email' => 'john@example.com',
             'password' => Hash::make('SecurePass1!'),
         ]);
 
         $response = $this->postJson('/api/auth/login', [
-            'email'    => 'john@example.com',
+            'email' => 'john@example.com',
             'password' => 'SecurePass1!',
         ]);
 
         $response->assertStatus(200)
-                 ->assertJsonMissingPath('user.password');
+            ->assertJsonMissingPath('user.password');
 
         $this->assertStringNotContainsString('SecurePass1!', $response->getContent());
         $this->assertStringNotContainsString('password', $response->getContent());
@@ -266,12 +266,12 @@ class AuthTest extends TestCase
 
     public function test_password_is_never_returned_in_me_response(): void
     {
-        $user  = User::factory()->create();
+        $user = User::factory()->create();
         $token = $user->createToken('auth_token')->plainTextToken;
 
         $response = $this->withToken($token)->getJson('/api/auth/me');
 
         $response->assertStatus(200)
-                 ->assertJsonMissingPath('password');
+            ->assertJsonMissingPath('password');
     }
 }

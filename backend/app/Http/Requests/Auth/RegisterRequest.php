@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests\Auth;
 
+use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
 
 class RegisterRequest extends FormRequest
@@ -17,12 +18,12 @@ class RegisterRequest extends FormRequest
     /**
      * Get the validation rules that apply to the request.
      *
-     * @return array<string, \Illuminate\Contracts\Validation\ValidationRule|array<mixed>|string>
+     * @return array<string, ValidationRule|array<mixed>|string>
      */
     public function rules(): array
     {
         return [
-            'email'    => ['required', 'string', 'email', 'max:255', 'unique:users,email'],
+            'email' => ['required', 'string', 'email', 'max:255', 'unique:users,email'],
             'password' => ['required', 'string', 'min:8', 'max:128'],
         ];
     }
@@ -35,12 +36,12 @@ class RegisterRequest extends FormRequest
     public function messages(): array
     {
         return [
-            'email.required'    => 'Email address is required.',
-            'email.email'       => 'Please enter a valid email address.',
-            'email.unique'      => 'This email is already registered.',
+            'email.required' => 'Email address is required.',
+            'email.email' => 'Please enter a valid email address.',
+            'email.unique' => 'This email is already registered.',
             'password.required' => 'Password is required.',
-            'password.min'      => 'Password must be at least 8 characters',
-            'password.max'      => 'Password may not be longer than 128 characters.',
+            'password.min' => 'Password must be at least 8 characters',
+            'password.max' => 'Password may not be longer than 128 characters.',
         ];
     }
 }

@@ -6,6 +6,7 @@ use App\Models\User;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Validation\ValidationException;
+use Symfony\Component\HttpKernel\Exception\TooManyRequestsHttpException;
 
 class AuthService
 {
@@ -27,8 +28,8 @@ class AuthService
     public function register(string $email, string $password): array
     {
         $user = User::create([
-            'email'    => strtolower(trim($email)),
-            'name'     => explode('@', trim($email))[0], // default display name
+            'email' => strtolower(trim($email)),
+            'name' => explode('@', trim($email))[0], // default display name
             'password' => Hash::make($password),
         ]);
 
@@ -45,8 +46,8 @@ class AuthService
      *
      * @return array{user: User, token: string}
      *
-     * @throws \Illuminate\Validation\ValidationException
-     * @throws \Symfony\Component\HttpKernel\Exception\TooManyRequestsHttpException
+     * @throws ValidationException
+     * @throws TooManyRequestsHttpException
      */
     public function login(string $email, string $password, string $ipAddress): array
     {
@@ -92,6 +93,6 @@ class AuthService
      */
     private function throttleKey(string $email, string $ipAddress): string
     {
-        return 'login:' . strtolower(trim($email)) . '|' . $ipAddress;
+        return 'login:'.strtolower(trim($email)).'|'.$ipAddress;
     }
 }

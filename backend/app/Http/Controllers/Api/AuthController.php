@@ -11,9 +11,7 @@ use Illuminate\Http\Request;
 
 class AuthController extends Controller
 {
-    public function __construct(private readonly AuthService $authService)
-    {
-    }
+    public function __construct(private readonly AuthService $authService) {}
 
     /**
      * POST /api/auth/register
@@ -29,8 +27,8 @@ class AuthController extends Controller
         );
 
         return response()->json([
-            'user'  => [
-                'id'    => $user->id,
+            'user' => [
+                'id' => $user->id,
                 'email' => $user->email,
             ],
             'token' => $token,
@@ -54,8 +52,8 @@ class AuthController extends Controller
         );
 
         return response()->json([
-            'user'  => [
-                'id'    => $user->id,
+            'user' => [
+                'id' => $user->id,
                 'email' => $user->email,
             ],
             'token' => $token,
@@ -86,7 +84,7 @@ class AuthController extends Controller
         $user = $request->user();
 
         return response()->json([
-            'id'    => $user->id,
+            'id' => $user->id,
             'email' => $user->email,
         ]);
     }
