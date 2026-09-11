@@ -19,34 +19,12 @@ const INACTIVITY_TIMEOUT_MS = 30 * 60 * 1000;
 const AuthContext = createContext(null);
 
 export function AuthProvider({ children }) {
-  const [user, setUser]             = useState(null);
-  const [token, setToken]           = useState(() => localStorage.getItem('mhr_token'));
-  const [isLoading, setIsLoading]   = useState(true); // true until bootstrap finishes
-  const inactivityTimer             = useRef(null);
+  const [user, setUser]           = useState(null);
+  const [token, setToken]         = useState(() => localStorage.getItem('mhr_token'));
+  const [isLoading, setIsLoading] = useState(true); // true until bootstrap finishes
+  const inactivityTimer           = useRef(null);
 
-  // ── Inactivity timer ──────────────────────────────────────────────────────
-
-  const resetInactivityTimer = useCallback(() => {
-    clearTimeout(inactivityTimer.current);
-    inactivityTimer.current = setTimeout(() => {
-      // Session expired due to inactivity — sign out silently (AC-10).
-      signout();
-    }, INACTIVITY_TIMEOUT_MS);
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
-
-  const startActivityListeners = useCallback(() => {
-    const events = ['mousemove', 'keydown', 'pointerdown', 'scroll'];
-    const handler = () => resetInactivityTimer();
-    events.forEach((e) => window.addEventListener(e, handler, { passive: true }));
-    resetInactivityTimer();
-
-    return () => {
-      events.forEach((e) => window.removeEventListener(e, handler));
-      clearTimeout(inactivityTimer.current);
-    };
-  }, [resetInactivityTimer]);
-
-  // ── Persist / clear token ─────────────────────────────────────────────────
+  // ── Persist / clear session ───────────────────────────────────────────────
 
   const persistSession = useCallback((newUser, newToken) => {
     localStorage.setItem('mhr_token', newToken);
@@ -58,14 +36,67 @@ export function AuthProvider({ children }) {
     localStorage.removeItem('mhr_token');
     setToken(null);
     setUser(null);
-    clearTimeout(inactivityTimer.current);
+    if (inactivityTimer.current) {
+      clearTimeout(inactivityTimer.current);
+    }
   }, []);
+
+  // ── Sign out action (always reads latest token from storage) ───────────────
+
+  const signout = useCallback(async () => {
+    try {
+      const activeToken = localStorage.getItem('mhr_token');
+      if (activeToken) {
+        await authApi.logout();
+      }
+    } catch {
+      // Even if API call fails or server is unreachable, clear local state.
+    } finally {
+      clearSession();
+    }
+  }, [clearSession]);
+
+  // Keep a ref to the latest signout function so timers never capture a stale closure.
+  const signoutRef = useRef(signout);
+  useEffect(() => {
+    signoutRef.current = signout;
+  }, [signout]);
+
+  // ── Inactivity timer & user activity listeners (AC-10) ────────────────────
+
+  useEffect(() => {
+    if (!token) {
+      if (inactivityTimer.current) {
+        clearTimeout(inactivityTimer.current);
+      }
+      return;
+    }
+
+    const resetTimer = () => {
+      if (inactivityTimer.current) {
+        clearTimeout(inactivityTimer.current);
+      }
+      inactivityTimer.current = setTimeout(() => {
+        // Session expired due to inactivity — sign out and revoke token on server (AC-10).
+        signoutRef.current?.();
+      }, INACTIVITY_TIMEOUT_MS);
+    };
+
+    const events = ['mousemove', 'keydown', 'pointerdown', 'scroll'];
+    events.forEach((e) => window.addEventListener(e, resetTimer, { passive: true }));
+    resetTimer();
+
+    return () => {
+      events.forEach((e) => window.removeEventListener(e, resetTimer));
+      if (inactivityTimer.current) {
+        clearTimeout(inactivityTimer.current);
+      }
+    };
+  }, [token]);
 
   // ── Bootstrap: verify token on mount (AC-04 — no flash of protected content) ──
 
   useEffect(() => {
-    let stopListeners;
-
     async function bootstrap() {
       const storedToken = localStorage.getItem('mhr_token');
 
@@ -78,7 +109,6 @@ export function AuthProvider({ children }) {
         const userData = await authApi.me();
         setUser(userData);
         setToken(storedToken);
-        stopListeners = startActivityListeners();
       } catch {
         // Token invalid / expired — clear state (AC-04, AC-10).
         clearSession();
@@ -88,11 +118,7 @@ export function AuthProvider({ children }) {
     }
 
     bootstrap();
-
-    return () => {
-      if (stopListeners) stopListeners();
-    };
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [clearSession]);
 
   // ── Listen for 401 session-expired events from the API client (AC-10) ─────
 
@@ -108,7 +134,6 @@ export function AuthProvider({ children }) {
   async function signup(email, password) {
     const { user: newUser, token: newToken } = await authApi.register(email, password);
     persistSession(newUser, newToken);
-    startActivityListeners();
     return newUser;
   }
 
@@ -116,22 +141,10 @@ export function AuthProvider({ children }) {
   async function login(email, password) {
     const { user: newUser, token: newToken } = await authApi.login(email, password);
     persistSession(newUser, newToken);
-    startActivityListeners();
     return newUser;
   }
 
-  /** Sign out, revoke token, clear local state (AC-03). */
-  async function signout() {
-    try {
-      if (token) await authApi.logout();
-    } catch {
-      // Even if the API call fails, clear local state.
-    } finally {
-      clearSession();
-    }
-  }
-
-  const isAuthenticated = !!user;
+  const isAuthenticated = Boolean(user && token);
 
   return (
     <AuthContext.Provider value={{ user, token, isAuthenticated, isLoading, signup, login, signout }}>

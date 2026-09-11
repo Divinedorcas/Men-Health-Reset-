@@ -3,6 +3,7 @@
 namespace App\Services\Auth;
 
 use App\Models\User;
+use Illuminate\Database\QueryException;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
@@ -29,11 +30,19 @@ class AuthService
      */
     public function register(string $email, string $password): array
     {
-        $user = User::create([
-            'email' => strtolower(trim($email)),
-            'name' => explode('@', trim($email))[0], // default display name
-            'password' => Hash::make($password),
-        ]);
+        try {
+            $user = User::create([
+                'email' => strtolower(trim($email)),
+                'name' => explode('@', trim($email))[0], // default display name
+                'password' => Hash::make($password),
+            ]);
+        } catch (QueryException) {
+            // Handle race condition: concurrent registration passed validation
+            // but trips the database unique constraint (AC-05).
+            throw ValidationException::withMessages([
+                'email' => 'This email is already registered.',
+            ]);
+        }
 
         $token = $user->createToken('auth_token')->plainTextToken;
 
@@ -44,28 +53,33 @@ class AuthService
      * Attempt to authenticate a user by email and password.
      *
      * Applies rate-limiting: after 5 consecutive failures the account is
-     * locked for DECAY_SECONDS and a 429 exception is raised.
+     * locked for DECAY_SECONDS and a 429 exception is raised (AC-09).
+     * Keyed per account so rotating source IP does not bypass lockout.
      *
      * @return array{user: User, token: string}
      *
      * @throws ValidationException
      * @throws TooManyRequestsHttpException
      */
-    public function login(string $email, string $password, string $ipAddress): array
+    public function login(string $email, string $password, ?string $ipAddress = null): array
     {
-        $throttleKey = $this->throttleKey($email, $ipAddress);
+        $throttleKey = $this->throttleKey($email);
 
-        // Check rate limit BEFORE attempting credentials.
+        // Check rate limit BEFORE attempting credentials (AC-09).
         if (RateLimiter::tooManyAttempts($throttleKey, self::MAX_ATTEMPTS)) {
-            $seconds = RateLimiter::availableIn($throttleKey);
-
             abort(429, 'Too many attempts. Please try again in a few minutes.');
         }
 
         $user = User::where('email', strtolower(trim($email)))->first();
 
-        if (! $user || ! Hash::check($password, $user->password)) {
-            // Record a failed attempt against the throttle key.
+        // Mitigation against timing attacks / user enumeration (OWASP):
+        // Always run Hash::check() even when $user is not found so the response time
+        // does not leak account existence.
+        $dummyHash = '$2y$10$x88EYib.0.ofFObWFfR1CeUqcG10MtCtZVlZZ0H17Jeu/ZzN/8b12';
+        $passwordMatches = Hash::check($password, $user?->password ?? $dummyHash);
+
+        if (! $user || ! $passwordMatches) {
+            // Record a failed attempt against the account throttle key.
             RateLimiter::hit($throttleKey, self::DECAY_SECONDS);
 
             throw ValidationException::withMessages([
@@ -100,10 +114,10 @@ class AuthService
     }
 
     /**
-     * Build a unique throttle key combining the email and IP address.
+     * Build a unique throttle key keyed by account to protect against credential stuffing (AC-09).
      */
-    private function throttleKey(string $email, string $ipAddress): string
+    private function throttleKey(string $email): string
     {
-        return 'login:'.strtolower(trim($email)).'|'.$ipAddress;
+        return 'login:'.strtolower(trim($email));
     }
 }

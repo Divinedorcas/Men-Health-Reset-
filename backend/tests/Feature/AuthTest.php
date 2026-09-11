@@ -3,9 +3,11 @@
 namespace Tests\Feature;
 
 use App\Models\User;
+use App\Services\Auth\AuthService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\RateLimiter;
+use Illuminate\Validation\ValidationException;
 use Tests\TestCase;
 
 /**
@@ -196,13 +198,13 @@ class AuthTest extends TestCase
     }
 
     // ─────────────────────────────────────────────────────────────
-    // AC-09 — 5 consecutive failed logins trigger a rate-limit block
+    // AC-09 — 5 consecutive failed logins trigger a rate-limit block (per account)
     // ─────────────────────────────────────────────────────────────
 
     public function test_too_many_failed_logins_are_rate_limited(): void
     {
         // Clear any lingering rate-limit state from other tests.
-        RateLimiter::clear('login:ratelimit@example.com|127.0.0.1');
+        RateLimiter::clear('login:ratelimit@example.com');
 
         User::factory()->create([
             'email' => 'ratelimit@example.com',
@@ -224,6 +226,35 @@ class AuthTest extends TestCase
         ]);
 
         $response->assertStatus(429)
+            ->assertJsonPath('message', 'Too many attempts. Please try again in a few minutes.');
+    }
+
+    public function test_lockout_protects_account_even_when_attacker_rotates_ip(): void
+    {
+        RateLimiter::clear('login:rotating@example.com');
+
+        User::factory()->create([
+            'email' => 'rotating@example.com',
+            'password' => Hash::make('CorrectPassword1!'),
+        ]);
+
+        // Attacker sends 5 wrong passwords from 5 different IP addresses
+        for ($i = 1; $i <= 5; $i++) {
+            $this->withServerVariables(['REMOTE_ADDR' => "198.51.100.{$i}"])
+                ->postJson('/api/auth/login', [
+                    'email' => 'rotating@example.com',
+                    'password' => 'WrongPassword!',
+                ])
+                ->assertStatus(422);
+        }
+
+        // 6th attempt from yet another IP must still be blocked by account lockout
+        $this->withServerVariables(['REMOTE_ADDR' => '203.0.113.99'])
+            ->postJson('/api/auth/login', [
+                'email' => 'rotating@example.com',
+                'password' => 'WrongPassword!',
+            ])
+            ->assertStatus(429)
             ->assertJsonPath('message', 'Too many attempts. Please try again in a few minutes.');
     }
 
@@ -273,5 +304,53 @@ class AuthTest extends TestCase
 
         $response->assertStatus(200)
             ->assertJsonMissingPath('password');
+    }
+
+    // ─────────────────────────────────────────────────────────────
+    // AC-10 — Session and bearer token expire after 30 minutes
+    // ─────────────────────────────────────────────────────────────
+
+    public function test_bearer_token_is_valid_within_30_minutes(): void
+    {
+        $user = User::factory()->create();
+        $token = $user->createToken('auth_token')->plainTextToken;
+
+        // Within the 30-minute window, token is accepted.
+        $this->travel(29)->minutes();
+        $this->withToken($token)
+            ->getJson('/api/auth/me')
+            ->assertStatus(200);
+    }
+
+    public function test_bearer_token_expires_after_30_minutes(): void
+    {
+        $user = User::factory()->create();
+        $token = $user->createToken('auth_token')->plainTextToken;
+
+        // After 30 minutes, token is expired and rejected with 401.
+        $this->travel(31)->minutes();
+        $this->withToken($token)
+            ->getJson('/api/auth/me')
+            ->assertStatus(401);
+    }
+
+    // ─────────────────────────────────────────────────────────────
+    // AC-05 — Database unique constraint race condition handling
+    // ─────────────────────────────────────────────────────────────
+
+    public function test_concurrent_registration_race_condition_returns_friendly_validation_error(): void
+    {
+        User::factory()->create(['email' => 'race@example.com']);
+
+        $authService = app(AuthService::class);
+
+        $this->expectException(ValidationException::class);
+
+        try {
+            $authService->register('race@example.com', 'SecurePass1!');
+        } catch (ValidationException $e) {
+            $this->assertSame('This email is already registered.', $e->errors()['email'][0]);
+            throw $e;
+        }
     }
 }

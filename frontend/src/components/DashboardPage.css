@@ -1,0 +1,328 @@
+/* ─── DashboardPage.css ───────────────────────────────────────────────────────
+   Premium dark glassmorphism styling for Men's Health Reset dashboard.
+   ─────────────────────────────────────────────────────────────────────────── */
+
+.dash-root {
+  min-height: 100vh;
+  background: #060d1a;
+  background-image:
+    radial-gradient(ellipse 80% 60% at 10% 0%, rgba(34, 211, 238, 0.12) 0%, transparent 60%),
+    radial-gradient(ellipse 60% 50% at 90% 100%, rgba(99, 102, 241, 0.15) 0%, transparent 60%);
+  color: #f8fafc;
+  font-family: 'Inter', 'Outfit', system-ui, sans-serif;
+  position: relative;
+  overflow-x: hidden;
+  padding-bottom: 4rem;
+}
+
+/* Background blobs ----------------------------------------------------------- */
+.dash-bg-blob {
+  position: absolute;
+  border-radius: 50%;
+  pointer-events: none;
+  filter: blur(100px);
+  opacity: 0.3;
+  z-index: 0;
+}
+
+.dash-bg-blob--1 {
+  width: 500px;
+  height: 500px;
+  background: radial-gradient(circle, #22d3ee 0%, transparent 70%);
+  top: -150px;
+  left: -100px;
+}
+
+.dash-bg-blob--2 {
+  width: 600px;
+  height: 600px;
+  background: radial-gradient(circle, #6366f1 0%, transparent 70%);
+  bottom: 0;
+  right: -150px;
+}
+
+/* Navigation ----------------------------------------------------------------- */
+.dash-nav {
+  position: sticky;
+  top: 0;
+  z-index: 50;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 1rem 2rem;
+  background: rgba(6, 13, 26, 0.75);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.dash-nav__brand {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.dash-nav__icon {
+  width: 36px;
+  height: 36px;
+}
+
+.dash-nav__title {
+  font-size: 1.15rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  background: linear-gradient(135deg, #f8fafc 0%, #cbd5e1 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.dash-nav__actions {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+/* User pill ------------------------------------------------------------------ */
+.dash-user-pill {
+  display: flex;
+  align-items: center;
+  gap: 0.625rem;
+  padding: 0.375rem 0.875rem 0.375rem 0.5rem;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 9999px;
+  font-size: 0.875rem;
+}
+
+.dash-user-pill__avatar {
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #22d3ee, #6366f1);
+  color: #fff;
+  font-weight: 700;
+  font-size: 0.75rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.dash-user-pill__email {
+  color: #e2e8f0;
+  font-weight: 500;
+}
+
+/* Sign out button ------------------------------------------------------------ */
+.dash-signout-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 1rem;
+  border-radius: 8px;
+  background: rgba(239, 68, 68, 0.12);
+  border: 1px solid rgba(239, 68, 68, 0.25);
+  color: #fca5a5;
+  font-size: 0.875rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.dash-signout-btn svg {
+  width: 16px;
+  height: 16px;
+}
+
+.dash-signout-btn:hover {
+  background: rgba(239, 68, 68, 0.22);
+  border-color: rgba(239, 68, 68, 0.45);
+  color: #fee2e2;
+  transform: translateY(-1px);
+}
+
+.dash-signout-btn:active {
+  transform: translateY(0);
+}
+
+/* Main layout ---------------------------------------------------------------- */
+.dash-main {
+  position: relative;
+  z-index: 1;
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 2.5rem 1.5rem;
+}
+
+/* Welcome section ------------------------------------------------------------ */
+.dash-welcome {
+  margin-bottom: 2rem;
+}
+
+.dash-welcome__heading {
+  font-size: 2.25rem;
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  margin: 0 0 0.5rem 0;
+  color: #fff;
+}
+
+.dash-welcome__name {
+  background: linear-gradient(135deg, #22d3ee, #818cf8);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.dash-welcome__sub {
+  font-size: 1.05rem;
+  color: #94a3b8;
+  margin: 0;
+  max-width: 600px;
+  line-height: 1.6;
+}
+
+/* Status Bar ----------------------------------------------------------------- */
+.dash-status-bar {
+  display: flex;
+  align-items: center;
+  gap: 1.5rem;
+  flex-wrap: wrap;
+  padding: 0.75rem 1.25rem;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  border-radius: 12px;
+  margin-bottom: 2.5rem;
+}
+
+.dash-status-item {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.8125rem;
+  color: #94a3b8;
+}
+
+.dash-status-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  box-shadow: 0 0 8px currentColor;
+}
+
+.dash-status-dot--green {
+  background-color: #22c55e;
+  color: #22c55e;
+}
+
+.dash-status-dot--cyan {
+  background-color: #06b6d4;
+  color: #06b6d4;
+}
+
+.dash-status-dot--purple {
+  background-color: #a855f7;
+  color: #a855f7;
+}
+
+/* Cards Grid ----------------------------------------------------------------- */
+.dash-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 1.5rem;
+}
+
+.dash-card {
+  position: relative;
+  background: rgba(255, 255, 255, 0.04);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 16px;
+  padding: 1.75rem;
+  transition: transform 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.dash-card:hover {
+  transform: translateY(-2px);
+  border-color: rgba(255, 255, 255, 0.16);
+  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.35);
+}
+
+.dash-card--featured {
+  border-color: rgba(34, 211, 238, 0.25);
+  background: linear-gradient(135deg, rgba(34, 211, 238, 0.06), rgba(99, 102, 241, 0.04));
+}
+
+.dash-card__badge {
+  position: absolute;
+  top: 1.25rem;
+  right: 1.25rem;
+  font-size: 0.6875rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  padding: 0.25rem 0.5rem;
+  border-radius: 9999px;
+  background: rgba(255, 255, 255, 0.07);
+  color: #94a3b8;
+}
+
+.dash-card__icon {
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 1.25rem;
+}
+
+.dash-card__icon svg {
+  width: 24px;
+  height: 24px;
+}
+
+.dash-card__icon--health {
+  background: rgba(34, 211, 238, 0.12);
+  color: #22d3ee;
+}
+
+.dash-card__icon--habits {
+  background: rgba(34, 197, 94, 0.12);
+  color: #4ade80;
+}
+
+.dash-card__icon--goals {
+  background: rgba(168, 85, 247, 0.12);
+  color: #c084fc;
+}
+
+.dash-card__icon--assess {
+  background: rgba(249, 115, 22, 0.12);
+  color: #fb923c;
+}
+
+.dash-card__title {
+  font-size: 1.15rem;
+  font-weight: 700;
+  margin: 0 0 0.5rem 0;
+  color: #f1f5f9;
+}
+
+.dash-card__desc {
+  font-size: 0.875rem;
+  color: #94a3b8;
+  margin: 0;
+  line-height: 1.5;
+}
+
+@media (max-width: 640px) {
+  .dash-nav {
+    padding: 0.75rem 1rem;
+  }
+  .dash-nav__title {
+    display: none;
+  }
+  .dash-welcome__heading {
+    font-size: 1.75rem;
+  }
+}
