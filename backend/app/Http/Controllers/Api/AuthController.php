@@ -68,7 +68,9 @@ class AuthController extends Controller
      */
     public function logout(Request $request): JsonResponse
     {
-        $this->authService->logout($request->user());
+        // Pass the full request so AuthService can resolve the Sanctum token
+        // directly from the authenticated request context.
+        $this->authService->logout($request);
 
         return response()->json(['message' => 'Signed out successfully.']);
     }

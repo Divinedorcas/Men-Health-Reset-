@@ -3,6 +3,7 @@
 namespace App\Services\Auth;
 
 use App\Models\User;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Validation\ValidationException;
@@ -80,12 +81,16 @@ class AuthService
     }
 
     /**
-     * Revoke the current user's token (sign out).
+     * Revoke the current bearer token (sign out).
+     *
+     * Accepts the full Request so we can call currentAccessToken() on the
+     * Sanctum-authenticated user — guaranteeing a real DB-backed
+     * PersonalAccessToken is deleted, never a no-op TransientToken.
      */
-    public function logout(User $user): void
+    public function logout(Request $request): void
     {
-        // Revoke only the current token, not all tokens.
-        $user->currentAccessToken()->delete();
+        // Revoke only the token that was used for this request.
+        $request->user()->currentAccessToken()->delete();
     }
 
     /**
