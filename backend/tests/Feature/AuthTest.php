@@ -4,7 +4,9 @@ namespace Tests\Feature;
 
 use App\Models\User;
 use App\Services\Auth\AuthService;
+use Illuminate\Database\QueryException;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Validation\ValidationException;
@@ -315,20 +317,51 @@ class AuthTest extends TestCase
         $user = User::factory()->create();
         $token = $user->createToken('auth_token')->plainTextToken;
 
-        // Within the 30-minute window, token is accepted.
+        // Within the 30-minute inactivity window, token is accepted.
         $this->travel(29)->minutes();
         $this->withToken($token)
             ->getJson('/api/auth/me')
             ->assertStatus(200);
     }
 
-    public function test_bearer_token_expires_after_30_minutes(): void
+    public function test_bearer_token_expires_after_30_minutes_of_inactivity(): void
     {
         $user = User::factory()->create();
         $token = $user->createToken('auth_token')->plainTextToken;
 
-        // After 30 minutes, token is expired and rejected with 401.
+        // After 30 minutes of complete inactivity, token is expired and rejected with 401.
         $this->travel(31)->minutes();
+        $this->withToken($token)
+            ->getJson('/api/auth/me')
+            ->assertStatus(401);
+    }
+
+    public function test_continuous_activity_extends_session_beyond_initial_30_minutes(): void
+    {
+        $user = User::factory()->create();
+        $token = $user->createToken('auth_token')->plainTextToken;
+
+        // 20 minutes in: make a request to refresh last_used_at
+        $this->travel(20)->minutes();
+        $this->withToken($token)
+            ->getJson('/api/auth/me')
+            ->assertStatus(200);
+
+        // Reset auth guards so next test request re-evaluates token
+        Auth::guard('sanctum')->forgetUser();
+        Auth::forgetGuards();
+
+        // 45 minutes total (25 minutes after last request): token remains valid because user was active
+        $this->travel(25)->minutes();
+        $this->withToken($token)
+            ->getJson('/api/auth/me')
+            ->assertStatus(200);
+
+        Auth::guard('sanctum')->forgetUser();
+        Auth::forgetGuards();
+
+        // 80 minutes total (35 minutes of inactivity since last request): token expires
+        $this->travel(35)->minutes();
         $this->withToken($token)
             ->getJson('/api/auth/me')
             ->assertStatus(401);
@@ -352,5 +385,30 @@ class AuthTest extends TestCase
             $this->assertSame('This email is already registered.', $e->errors()['email'][0]);
             throw $e;
         }
+    }
+
+    public function test_unrelated_database_failure_during_registration_surfaces_as_server_error(): void
+    {
+        $authService = app(AuthService::class);
+
+        // A QueryException that is NOT a duplicate email error (e.g. disk failure)
+        // must NOT be caught as a duplicate email validation error.
+        $pdoException = new \PDOException('Disk full or connection severed', 500);
+        $unrelatedException = new QueryException(
+            'sqlite',
+            'insert into users ...',
+            [],
+            $pdoException
+        );
+
+        // Mock User model create to throw unrelated exception
+        $this->expectException(QueryException::class);
+        $this->expectExceptionMessage('Disk full or connection severed');
+
+        User::creating(function () use ($unrelatedException) {
+            throw $unrelatedException;
+        });
+
+        $authService->register('unrelated@example.com', 'SecurePass1!');
     }
 }

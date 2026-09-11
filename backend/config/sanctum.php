@@ -50,7 +50,19 @@ return [
     |
     */
 
-    'expiration' => (int) env('SANCTUM_EXPIRATION', 30),
+    'expiration' => null,
+
+    /*
+    |--------------------------------------------------------------------------
+    | Inactivity Timeout Minutes
+    |--------------------------------------------------------------------------
+    |
+    | Tokens expire after 30 minutes of inactivity (AC-10). Each authenticated
+    | request updates last_used_at, sliding the 30-minute window forward.
+    |
+    */
+
+    'inactivity_timeout' => (int) env('SANCTUM_INACTIVITY_TIMEOUT', 30),
 
     /*
     |--------------------------------------------------------------------------

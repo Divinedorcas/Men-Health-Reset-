@@ -4,6 +4,7 @@ namespace App\Services\Auth;
 
 use App\Models\User;
 use Illuminate\Database\QueryException;
+use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
@@ -36,12 +37,16 @@ class AuthService
                 'name' => explode('@', trim($email))[0], // default display name
                 'password' => Hash::make($password),
             ]);
-        } catch (QueryException) {
-            // Handle race condition: concurrent registration passed validation
-            // but trips the database unique constraint (AC-05).
-            throw ValidationException::withMessages([
-                'email' => 'This email is already registered.',
-            ]);
+        } catch (QueryException $e) {
+            // Only catch the specific duplicate-email database constraint error (AC-05).
+            // All other database failures must surface as actual server errors (500).
+            if ($this->isDuplicateEmailException($e)) {
+                throw ValidationException::withMessages([
+                    'email' => 'This email is already registered.',
+                ]);
+            }
+
+            throw $e;
         }
 
         $token = $user->createToken('auth_token')->plainTextToken;
@@ -115,9 +120,36 @@ class AuthService
 
     /**
      * Build a unique throttle key keyed by account to protect against credential stuffing (AC-09).
+     *
+     * Tradeoff Decision (see docs/decisions/002-account-lockout-tradeoff.md):
+     * Keying strictly by email prevents attackers from bypassing lockout via IP/proxy rotation.
+     * The accepted tradeoff is that a malicious actor who knows a victim's email could intentionally
+     * submit 5 bad passwords to temporarily lock the account for 5 minutes. This is accepted
+     * in favor of absolute protection against automated password brute-forcing.
      */
     private function throttleKey(string $email): string
     {
         return 'login:'.strtolower(trim($email));
+    }
+
+    /**
+     * Determine if a QueryException was specifically caused by a duplicate email constraint.
+     */
+    private function isDuplicateEmailException(QueryException $e): bool
+    {
+        $message = strtolower($e->getMessage());
+
+        $isUniqueViolation = $e instanceof UniqueConstraintViolationException
+            || str_contains($message, 'unique')
+            || str_contains($message, 'duplicate entry')
+            || $e->getCode() === '23000'
+            || $e->getCode() === 23000
+            || $e->getCode() === '23505';
+
+        $isEmailField = str_contains($message, 'email')
+            || str_contains($message, 'users.email')
+            || str_contains($message, 'users_email_unique');
+
+        return $isUniqueViolation && $isEmailField;
     }
 }
