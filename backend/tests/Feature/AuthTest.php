@@ -213,7 +213,7 @@ class AuthTest extends TestCase
     {
         $response = $this->postJson('/api/auth/register', [
             'email' => 'john73@example.com',
-            'password' => str_repeat('A1!b', 18) . 'X', // 73 chars
+            'password' => str_repeat('A1!b', 18).'X', // 73 chars
         ]);
 
         $response->assertStatus(422)
