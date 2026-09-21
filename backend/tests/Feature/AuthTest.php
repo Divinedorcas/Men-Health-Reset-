@@ -199,6 +199,28 @@ class AuthTest extends TestCase
         $response->assertStatus(201);
     }
 
+    public function test_password_of_72_characters_is_accepted(): void
+    {
+        $response = $this->postJson('/api/auth/register', [
+            'email' => 'john72@example.com',
+            'password' => str_repeat('A1!b', 18), // 72 chars (bcrypt truncation limit)
+        ]);
+
+        $response->assertStatus(201);
+    }
+
+    public function test_password_longer_than_72_characters_is_rejected(): void
+    {
+        $response = $this->postJson('/api/auth/register', [
+            'email' => 'john73@example.com',
+            'password' => str_repeat('A1!b', 18) . 'X', // 73 chars
+        ]);
+
+        $response->assertStatus(422)
+            ->assertJsonValidationErrors(['password'])
+            ->assertJsonPath('errors.password.0', 'Password may not be longer than 72 characters.');
+    }
+
     // ─────────────────────────────────────────────────────────────
     // AC-09 — 5 consecutive failed logins trigger a rate-limit block (per account)
     // ─────────────────────────────────────────────────────────────
@@ -401,14 +423,31 @@ class AuthTest extends TestCase
             $pdoException
         );
 
-        // Mock User model create to throw unrelated exception
-        $this->expectException(QueryException::class);
-        $this->expectExceptionMessage('Disk full or connection severed');
+        // Save original dispatcher and clone to isolate event listeners for this test
+        $initialDispatcher = User::getEventDispatcher();
+        User::setEventDispatcher(clone $initialDispatcher);
 
-        User::creating(function () use ($unrelatedException) {
-            throw $unrelatedException;
-        });
+        try {
+            // Mock User model create to throw unrelated exception
+            $this->expectException(QueryException::class);
+            $this->expectExceptionMessage('Disk full or connection severed');
 
-        $authService->register('unrelated@example.com', 'SecurePass1!');
+            User::creating(function () use ($unrelatedException) {
+                throw $unrelatedException;
+            });
+
+            $authService->register('unrelated@example.com', 'SecurePass1!');
+        } finally {
+            // Explicitly restore the original dispatcher so no listeners leak to subsequent tests
+            User::setEventDispatcher($initialDispatcher);
+        }
+    }
+
+    public function test_subsequent_user_creation_is_not_affected_by_model_events_after_failure_test(): void
+    {
+        // Confirms that the User::creating listener did not leak into subsequent tests
+        User::factory()->create(['email' => 'post_cleanup@example.com']);
+
+        $this->assertDatabaseHas('users', ['email' => 'post_cleanup@example.com']);
     }
 }

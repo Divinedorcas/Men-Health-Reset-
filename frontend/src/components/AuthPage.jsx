@@ -41,6 +41,8 @@ export default function AuthPage() {
       errs.password = 'Password is required.';
     } else if (isSignup && password.length < 8) {
       errs.password = 'Password must be at least 8 characters';
+    } else if (isSignup && password.length > 72) {
+      errs.password = 'Password may not be longer than 72 characters.';
     }
 
     setFieldErrors(errs);
@@ -205,6 +207,7 @@ export default function AuthPage() {
                 autoComplete={isSignup ? 'new-password' : 'current-password'}
                 placeholder={isSignup ? 'Create a strong password' : 'Enter your password'}
                 value={password}
+                maxLength={isSignup ? 72 : undefined}
                 onChange={(e) => {
                   setPassword(e.target.value);
                   if (fieldErrors.password) setFieldErrors((p) => ({ ...p, password: '' }));

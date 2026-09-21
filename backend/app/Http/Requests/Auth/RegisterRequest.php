@@ -24,7 +24,7 @@ class RegisterRequest extends FormRequest
     {
         return [
             'email' => ['required', 'string', 'email', 'max:255', 'unique:users,email'],
-            'password' => ['required', 'string', 'min:8', 'max:128'],
+            'password' => ['required', 'string', 'min:8', 'max:72'],
         ];
     }
 
@@ -41,7 +41,7 @@ class RegisterRequest extends FormRequest
             'email.unique' => 'This email is already registered.',
             'password.required' => 'Password is required.',
             'password.min' => 'Password must be at least 8 characters',
-            'password.max' => 'Password may not be longer than 128 characters.',
+            'password.max' => 'Password may not be longer than 72 characters.',
         ];
     }
 }
